@@ -1,73 +1,158 @@
+using System;
+using System.Collections.Generic;
+using System.Drawing;
+using System.Windows.Forms;
+using HikeManager.Views;
+
 namespace HikeManager
 {
     public partial class Form1 : Form
     {
+        private Panel _mainArea = null!;
+        private readonly List<Button> _menuButtons = new();
+        private Button? _activeButton;
+
         public Form1()
         {
             InitializeComponent();
-            SetupUI(); // Викликаємо наш код для інтерфейсу
+            SetupUI();
         }
 
         private void SetupUI()
         {
-            // 1. Налаштування головного вікна
-            this.Size = new Size(1000, 650);
-            this.Text = "HikeManager — Головне меню";
-            this.StartPosition = FormStartPosition.CenterScreen;
+            // 1. РќР°Р»Р°С€С‚СѓРІР°РЅРЅСЏ РіРѕР»РѕРІРЅРѕС— С„РѕСЂРјРё
+            Text = "HikeManager вЂ” РљРµСЂСѓРІР°РЅРЅСЏ РіС–СЂСЃСЊРєРёРјРё РїРѕС…РѕРґР°РјРё";
+            Size = new Size(1150, 720);
+            MinimumSize = new Size(950, 600);
+            StartPosition = FormStartPosition.CenterScreen;
+            BackColor = Theme.BackgroundColor;
 
-            // 2. Створення бокової панелі (Меню)
-            Panel sideMenu = new Panel();
-            sideMenu.Dock = DockStyle.Left;
-            sideMenu.Width = 200;
-            sideMenu.BackColor = Color.FromArgb(40, 75, 60); // Темно-зелений колір з макету
+            // 2. Р›С–РІРµ РЅР°РІС–РіР°С†С–Р№РЅРµ РјРµРЅСЋ
+            Panel sideMenu = new Panel
+            {
+                Dock = DockStyle.Left,
+                Width = 230,
+                BackColor = Theme.PrimaryColor
+            };
 
-            // 3. Створення кнопок для меню
-            Button btnRoutes = CreateMenuButton("Маршрути");
-            Button btnHikes = CreateMenuButton("Походи");
-            Button btnHistory = CreateMenuButton("Історія");
+            // Р›РѕРіРѕС‚РёРї С‚Р° Р±СЂРµРЅРґ Р·Р°СЃС‚РѕСЃСѓРЅРєСѓ
+            Panel logoPanel = new Panel
+            {
+                Dock = DockStyle.Top,
+                Height = 85,
+                Padding = new Padding(20, 18, 10, 10)
+            };
 
-            // Додаємо кнопки на панель (знизу вгору, щоб перша була зверху)
+            Label logoTitle = new Label
+            {
+                Text = "HikeManager",
+                Font = new Font("Segoe UI", 16, FontStyle.Bold),
+                ForeColor = Color.White,
+                AutoSize = true,
+                Location = new Point(16, 16)
+            };
+
+            Label logoSubtitle = new Label
+            {
+                Text = "РџР»Р°РЅСѓРІР°РЅРЅСЏ С‚Р° Р»РѕРіС–СЃС‚РёРєР°",
+                Font = new Font("Segoe UI", 8.5f, FontStyle.Regular),
+                ForeColor = Color.FromArgb(180, 210, 195),
+                AutoSize = true,
+                Location = new Point(18, 46)
+            };
+
+            logoPanel.Controls.Add(logoTitle);
+            logoPanel.Controls.Add(logoSubtitle);
+
+            // РљРЅРѕРїРєРё РЅР°РІС–РіР°С†С–С—
+            Button btnRoutes = CreateMenuButton("РњР°СЂС€СЂСѓС‚Рё", () => ShowView(new RoutesView()));
+            Button btnHikes = CreateMenuButton("РџРѕС…РѕРґРё", () => ShowView(new HikesView(showHistory: false)));
+            Button btnHistory = CreateMenuButton("Р†СЃС‚РѕСЂС–СЏ", () => ShowView(new HikesView(showHistory: true)));
+
+            // РџРѕСЂСЏРґРѕРє РґРѕРґР°РІР°РЅРЅСЏ РґР»СЏ DockStyle.Top
             sideMenu.Controls.Add(btnHistory);
             sideMenu.Controls.Add(btnHikes);
             sideMenu.Controls.Add(btnRoutes);
+            sideMenu.Controls.Add(logoPanel);
 
-            // 4. Створення світлої робочої зони
-            Panel mainArea = new Panel();
-            mainArea.Dock = DockStyle.Fill;
-            mainArea.BackColor = Color.FromArgb(235, 245, 235); // Світло-зелений фон
+            // 3. РћСЃРЅРѕРІРЅР° СЂРѕР±РѕС‡Р° РїР°РЅРµР»СЊ (РєРѕРЅС‚РµР№РЅРµСЂ РґР»СЏ UserControl)
+            _mainArea = new Panel
+            {
+                Dock = DockStyle.Fill,
+                BackColor = Theme.BackgroundColor
+            };
 
-            // 5. Заголовок робочої зони
-            Label titleLabel = new Label();
-            titleLabel.Text = "Маршрути";
-            titleLabel.Font = new Font("Segoe UI", 24, FontStyle.Bold);
-            titleLabel.ForeColor = Color.FromArgb(40, 75, 60);
-            titleLabel.AutoSize = true;
-            titleLabel.Location = new Point(40, 30);
+            Controls.Add(_mainArea);
+            Controls.Add(sideMenu);
 
-            mainArea.Controls.Add(titleLabel);
-
-            // 6. Додаємо панелі на головну форму
-            this.Controls.Add(mainArea);
-            this.Controls.Add(sideMenu);
+            // 4. РџРѕС‡Р°С‚РєРѕРІРёР№ РµРєСЂР°РЅ вЂ” РњР°СЂС€СЂСѓС‚Рё
+            btnRoutes.PerformClick();
         }
 
-        // Допоміжний метод, щоб не дублювати код налаштування кожної кнопки
-        private Button CreateMenuButton(string text)
+        private Button CreateMenuButton(string text, Action onClickAction)
         {
-            Button btn = new Button();
-            btn.Text = text;
-            btn.Dock = DockStyle.Top;
-            btn.Height = 55;
-            btn.FlatStyle = FlatStyle.Flat;
-            btn.FlatAppearance.BorderSize = 0;
-            btn.ForeColor = Color.White;
-            btn.Font = new Font("Segoe UI", 11, FontStyle.Bold);
-            btn.Cursor = Cursors.Hand;
+            Button btn = new Button
+            {
+                Text = text,
+                Dock = DockStyle.Top,
+                Height = 52,
+                FlatStyle = FlatStyle.Flat,
+                FlatAppearance =
+                {
+                    BorderSize = 0,
+                    MouseOverBackColor = Theme.SidebarHover,
+                    MouseDownBackColor = Theme.SidebarActive
+                },
+                ForeColor = Color.White,
+                Font = Theme.HeaderFont,
+                TextAlign = ContentAlignment.MiddleLeft,
+                Padding = new Padding(20, 0, 0, 0),
+                Cursor = Cursors.Hand,
+                BackColor = Theme.PrimaryColor
+            };
 
-            // Проста перевірка працездатності при кліку
-            btn.Click += (s, e) => MessageBox.Show($"Відкрито розділ: {text}. База даних підключена.");
+            btn.Click += (s, e) =>
+            {
+                SetActiveButton(btn);
+                onClickAction();
+            };
 
+            _menuButtons.Add(btn);
             return btn;
+        }
+
+        private void SetActiveButton(Button button)
+        {
+            _activeButton = button;
+            foreach (var btn in _menuButtons)
+            {
+                if (btn == button)
+                {
+                    btn.BackColor = Theme.SidebarActive;
+                    btn.Font = new Font(Theme.HeaderFont.FontFamily, Theme.HeaderFont.Size, FontStyle.Bold);
+                }
+                else
+                {
+                    btn.BackColor = Theme.PrimaryColor;
+                    btn.Font = Theme.HeaderFont;
+                }
+            }
+        }
+
+        public void ShowView(UserControl view)
+        {
+            _mainArea.SuspendLayout();
+
+            while (_mainArea.Controls.Count > 0)
+            {
+                var ctrl = _mainArea.Controls[0];
+                _mainArea.Controls.RemoveAt(0);
+                ctrl.Dispose();
+            }
+
+            view.Dock = DockStyle.Fill;
+            _mainArea.Controls.Add(view);
+            _mainArea.ResumeLayout(true);
         }
     }
 }
